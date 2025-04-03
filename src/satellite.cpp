@@ -5,7 +5,6 @@
 #include <WiFiNINA.h>
 #include <TinyGPS++.h>
 #include <Arduino_LSM6DSOX.h>
-#include "../lib/SdFat/src/SdFat.h"
 #include <communication.h>
 
 Adafruit_BMP280 bmp;
