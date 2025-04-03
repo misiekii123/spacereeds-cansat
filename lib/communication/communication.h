@@ -1,0 +1,37 @@
+#ifndef COMMUNICATION_H
+#define COMMUNICATION_H
+
+#include <Arduino.h>
+#include "LoRa.h"
+#include "WiFiNINA.h"
+
+typedef struct {
+    float x;
+    float y;
+    float z;
+} Vector3;
+
+typedef struct {
+    Vector3 orientation;
+    Vector3 position;
+    Vector3 acceleration;
+    float temperature;
+    int internal_temperature;
+    float pressure;
+    uint8_t error;
+    int signal;
+} Readings;
+
+enum errors {
+  GPS_e = 0b00001,
+  GPS_val_e = 0b00010,
+  IMU_e = 0b00100,
+  SD_e = 0b01000,
+  BMP_e = 0b10000
+};
+
+void initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost);
+void sendData(Readings& data, size_t size);
+void setRGB(PinStatus r, PinStatus g, PinStatus b);
+
+#endif // COMMUNICATION_H
