@@ -7,10 +7,12 @@
 #include <Arduino_LSM6DSOX.h>
 #include <communication.h>
 #include <SD.h>
+#include <ArduinoJson.h>
 
 Adafruit_BMP280 bmp;
 TinyGPSPlus gps;
 File file;
+String finalFileName;
 
 Readings createReadings() {
     Readings data;
@@ -56,6 +58,8 @@ void readData(Readings& data) {
         IMU.readGyroscope(data.orientation.x, data.orientation.y, data.orientation.z);
     }
     else data.error |= IMU_e;
+
+    if(!SD.exists("/" + finalFileName + ".TXT")) data.error |= SD_e;
 }
 
 int getNextMissionNumber() {
@@ -88,6 +92,27 @@ int getNextMissionNumber() {
     return maxNumber + 1;
 }
 
+void jsonData(Readings& data, StaticJsonDocument<256>& json_file) {
+    JsonObject orientation = json_file.createNestedObject("orientation");
+    orientation["x"] = data.orientation.x;
+    orientation["y"] = data.orientation.y;
+    orientation["z"] = data.orientation.z;
+
+    JsonObject position = json_file.createNestedObject("position");
+    position["x"] = data.position.x;
+    position["y"] = data.position.y;
+    position["z"] = data.position.z;
+
+    JsonObject acceleration = json_file.createNestedObject("acceleration");
+    acceleration["x"] = data.acceleration.x;
+    acceleration["y"] = data.acceleration.y;
+    acceleration["z"] = data.acceleration.z;
+
+    json_file["temperature"] = data.temperature;
+    json_file["internal_temperature"] = data.internal_temperature;
+    json_file["pressure"] = data.pressure;
+    json_file["error"] = (uint8_t)data.error;
+}
 
 void setup() {
     pinMode(LEDR, OUTPUT);
@@ -106,8 +131,8 @@ void setup() {
     }
 
     int missionNumber = getNextMissionNumber();
-    String fileName = String(missionNumber) + ".txt";
-    file = SD.open(fileName, FILE_WRITE);
+    finalFileName = String(missionNumber) + ".txt";
+    file = SD.open(finalFileName, FILE_WRITE);
     if(file) file.close();
 
     LoRaAccess(true);
@@ -133,14 +158,24 @@ void setup() {
 void loop() {
     Readings data = createReadings();
     readData(data);
-    
+
     LoRaAccess(true);
     sendData(data, sizeof(Readings));
     LoRaAccess(false);
 
-    setRGB(LOW, HIGH, LOW);
-    delay(40);
-    setRGB(LOW, LOW, LOW);
+    StaticJsonDocument<256> json_data;
+    jsonData(data, json_data);
 
-    delay(200);
+    file = SD.open(finalFileName, FILE_WRITE);
+    if (file) {
+        serializeJson(json_data, file);
+        file.println();
+        file.close();
+    }
+
+    file = File();
+
+    setRGB(LOW, HIGH, LOW);
+    delay(20);
+    setRGB(LOW, LOW, LOW);
 }
