@@ -22,3 +22,14 @@ void setRGB(PinStatus r, PinStatus g, PinStatus b) {
     digitalWrite(LEDG, g);
     digitalWrite(LEDB, b);
 }
+
+void LoRaAccess(bool access_to_lora) {
+    if(access_to_lora) {
+        digitalWrite(LORA_CS, LOW);
+        digitalWrite(SD_CS, HIGH);
+    }
+    else {
+        digitalWrite(LORA_CS, HIGH);
+        digitalWrite(SD_CS, LOW);
+    }
+}

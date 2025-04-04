@@ -1,9 +1,11 @@
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
+#pragma once
 
 #include <Arduino.h>
 #include "LoRa.h"
 #include "WiFiNINA.h"
+
+#define SD_CS 9
+#define LORA_CS 10
 
 typedef struct {
     float x;
@@ -33,5 +35,4 @@ enum errors {
 void initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost);
 void sendData(Readings& data, size_t size);
 void setRGB(PinStatus r, PinStatus g, PinStatus b);
-
-#endif // COMMUNICATION_H
+void LoRaAccess(bool access_to_lora);

@@ -6,6 +6,7 @@
 #include <TinyGPS++.h>
 #include <Arduino_LSM6DSOX.h>
 #include <communication.h>
+#include <SD.h>
 
 Adafruit_BMP280 bmp;
 TinyGPSPlus gps;
@@ -60,10 +61,19 @@ void setup() {
     pinMode(LEDR, OUTPUT);
     pinMode(LEDG, OUTPUT);
     pinMode(LEDB, OUTPUT);
+    pinMode(LORA_CS, OUTPUT);
+    pinMode(SD_CS, OUTPUT);
 
     setRGB(LOW, LOW, LOW);
     Serial1.begin(9600);
 
+    LoRaAccess(false);
+    if(!SD.begin(SD_CS)) {
+        setRGB(HIGH, LOW, HIGH);
+        while (1);
+    }
+
+    LoRaAccess(true);
     initLora(433E6, 10, 125E3, 6, 20, true);
 
     if (!bmp.begin(0x76)) {

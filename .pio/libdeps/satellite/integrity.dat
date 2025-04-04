@@ -1,9 +1,9 @@
-https://github.com/adafruit/Adafruit_BMP280_Library
-lib/communication
-https://github.com/arduino-libraries/WiFiNINA
-https://github.com/greiman/SdFat
-ArduinoJson
-https://github.com/mikalhart/TinyGPSPlus
-https://github.com/arduino-libraries/Arduino_LSM6DSOX
-LoRa
 https://github.com/adafruit/Adafruit_Sensor
+https://github.com/mikalhart/TinyGPSPlus
+lib/communication
+LoRa
+https://github.com/adafruit/Adafruit_BMP280_Library
+https://github.com/arduino-libraries/SD
+https://github.com/arduino-libraries/Arduino_LSM6DSOX
+ArduinoJson
+https://github.com/arduino-libraries/WiFiNINA
