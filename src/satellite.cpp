@@ -10,6 +10,7 @@
 
 Adafruit_BMP280 bmp;
 TinyGPSPlus gps;
+File file;
 
 Readings createReadings() {
     Readings data;
@@ -57,6 +58,37 @@ void readData(Readings& data) {
     else data.error |= IMU_e;
 }
 
+int getNextMissionNumber() {
+    int maxNumber = 0;
+    File root = SD.open("/");
+
+    if (!root) {
+        return 1;
+    }
+
+    while (true) {
+        File entry = root.openNextFile();
+        if (!entry) {
+            break;
+        }
+
+        String fileName = entry.name();
+        entry.close();
+
+        int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex > 0) {
+            String numberPart = fileName.substring(0, dotIndex);
+            int num = numberPart.toInt();
+            if (num > maxNumber) {
+                maxNumber = num;
+            }
+        }
+    }
+    root.close();
+    return maxNumber + 1;
+}
+
+
 void setup() {
     pinMode(LEDR, OUTPUT);
     pinMode(LEDG, OUTPUT);
@@ -72,6 +104,11 @@ void setup() {
         setRGB(HIGH, LOW, HIGH);
         while (1);
     }
+
+    int missionNumber = getNextMissionNumber();
+    String fileName = String(missionNumber) + ".txt";
+    file = SD.open(fileName, FILE_WRITE);
+    if(file) file.close();
 
     LoRaAccess(true);
     initLora(433E6, 10, 125E3, 6, 20, true);
@@ -96,7 +133,10 @@ void setup() {
 void loop() {
     Readings data = createReadings();
     readData(data);
+    
+    LoRaAccess(true);
     sendData(data, sizeof(Readings));
+    LoRaAccess(false);
 
     setRGB(LOW, HIGH, LOW);
     delay(40);

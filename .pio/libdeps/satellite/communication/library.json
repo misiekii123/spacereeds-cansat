@@ -1,9 +1,0 @@
-{
-  "name": "communication",
-  "version": "1.0.0",
-  "description": "LoRa communication library",
-  "build": {
-    "srcFilter": "+<*>",
-    "flags": "-Iinclude"
-  }
-}
