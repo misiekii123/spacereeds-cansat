@@ -39,6 +39,26 @@ void checkLeds() {
     }
 }
 
+void checkErrors(const Readings& data) {
+    digitalWrite(SD_LED, LOW);
+    digitalWrite(BMP_LED, LOW);
+    digitalWrite(GPS_LED, LOW);
+    digitalWrite(LORA_LED, LOW);
+
+    if (data.error & SD_e) {
+        digitalWrite(SD_LED, HIGH);
+    }
+    if (data.error & BMP_e) {
+        digitalWrite(BMP_LED, HIGH);
+    }
+    if ((data.error & GPS_e) || (data.error & GPS_val_e)) {
+        digitalWrite(GPS_LED, HIGH);
+    }
+//    if (data.error & LORA_e) {
+//        digitalWrite(LORA_LED, HIGH);
+//    }
+}
+
 Readings createReadings() {
     Readings data;
     data.temperature = 0.0;
@@ -160,4 +180,6 @@ void loop() {
     setRGB(LOW, HIGH, LOW);
     delay(20);
     setRGB(LOW, LOW, LOW);
+
+    checkErrors(data);
 }
