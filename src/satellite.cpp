@@ -11,9 +11,13 @@
 #include <ArduinoJson.h>
 #include <utils.h>
 
+bool bmp_ok = false;
+bool imu_ok = false;
+bool sd_ok = false;
+bool lora_ok = false;
+
 void checkLeds() {
     const int delayTime = 150;
-
     for (int i = 0; i < 2; i++) {
         digitalWrite(POWER_LED, HIGH);
         delay(delayTime);
@@ -22,16 +26,13 @@ void checkLeds() {
     }
 
     const int ledPins[] = {SD_LED, BMP_LED, GPS_LED, LORA_LED};
-    const int ledCount = sizeof(ledPins) / sizeof(ledPins[0]);
-
     for (int cycle = 0; cycle < 2; cycle++) {
-        for (int i = 0; i < ledCount; i++) {
+        for (int i = 0; i < 4; i++) {
             digitalWrite(ledPins[i], HIGH);
             delay(delayTime);
             digitalWrite(ledPins[i], LOW);
         }
-
-        for (int i = ledCount - 1; i >= 0; i--) {
+        for (int i = 3; i >= 0; i--) {
             digitalWrite(ledPins[i], HIGH);
             delay(delayTime);
             digitalWrite(ledPins[i], LOW);
@@ -40,23 +41,10 @@ void checkLeds() {
 }
 
 void checkErrors(const Readings& data) {
-    digitalWrite(SD_LED, LOW);
-    digitalWrite(BMP_LED, LOW);
-    digitalWrite(GPS_LED, LOW);
-    digitalWrite(LORA_LED, LOW);
-
-    if (data.error & SD_e) {
-        digitalWrite(SD_LED, HIGH);
-    }
-    if (data.error & BMP_e) {
-        digitalWrite(BMP_LED, HIGH);
-    }
-    if ((data.error & GPS_e) || (data.error & GPS_val_e)) {
-        digitalWrite(GPS_LED, HIGH);
-    }
-//    if (data.error & LORA_e) {
-//        digitalWrite(LORA_LED, HIGH);
-//    }
+    digitalWrite(SD_LED,  (data.error & SD_e) ? HIGH : LOW);
+    digitalWrite(BMP_LED, (data.error & BMP_e) ? HIGH : LOW);
+    digitalWrite(GPS_LED, (data.error & GPS_e) ? HIGH : LOW);
+    digitalWrite(LORA_LED, lora_ok ? LOW : HIGH);
 }
 
 Readings createReadings() {
@@ -71,40 +59,66 @@ Readings createReadings() {
     return data;
 }
 
+void validateSensors() {
+    bmp_ok = bmp.begin(0x76);
+    imu_ok = IMU.begin();
+
+    LoRaAccess(false);
+    sd_ok = SD.begin(SD_CS);
+
+    LoRaAccess(true);
+    lora_ok = initLora(433E6, 10, 125E3, 6, 20, true);
+    LoRaAccess(false);
+
+    if (bmp_ok) {
+        bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
+                        Adafruit_BMP280::SAMPLING_X2,
+                        Adafruit_BMP280::SAMPLING_X16,
+                        Adafruit_BMP280::FILTER_X16,
+                        Adafruit_BMP280::STANDBY_MS_500);
+    }
+}
+
 void readData(Readings& data) {
-    if (!bmp.begin(0x76)) data.error |= BMP_e;
+    if (!bmp_ok) data.error |= BMP_e;
     else {
         data.temperature = bmp.readTemperature();
         data.pressure = bmp.readPressure() / 100.0F;
     }
 
+    bool gpsDataReceived = false;
     while (Serial1.available() > 0) {
         gps.encode(Serial1.read());
-        if (gps.location.isValid()) {
-            data.position.x = (float)gps.location.lat();
-            data.position.y = (float)gps.altitude.meters();
-            data.position.z = (float)gps.location.lng();
-        }
-        else data.error |= GPS_val_e;
+        gpsDataReceived = true;
     }
-    if (!Serial1.available()) data.error |= GPS_e;
 
-    if (IMU.temperatureAvailable()) {
-        IMU.readTemperature(data.internal_temperature);
+    if (gps.location.isValid()) {
+        data.position.x = (float)gps.location.lat();
+        data.position.y = (float)gps.altitude.meters();
+        data.position.z = (float)gps.location.lng();
+    } else {
+        data.error |= GPS_val_e;
     }
-    else data.error |= IMU_e;
 
-    if (IMU.accelerationAvailable()) {
-        IMU.readAcceleration(data.acceleration.x, data.acceleration.y, data.acceleration.z);
+    if (!gpsDataReceived) data.error |= GPS_e;
+
+    if (!imu_ok) {
+        data.error |= IMU_e;
+    } else {
+        if (IMU.temperatureAvailable()) {
+            IMU.readTemperature(data.internal_temperature);
+        } else data.error |= IMU_e;
+
+        if (IMU.accelerationAvailable()) {
+            IMU.readAcceleration(data.acceleration.x, data.acceleration.y, data.acceleration.z);
+        } else data.error |= IMU_e;
+
+        if (IMU.gyroscopeAvailable()) {
+            IMU.readGyroscope(data.orientation.x, data.orientation.y, data.orientation.z);
+        } else data.error |= IMU_e;
     }
-    else data.error |= IMU_e;
 
-    if (IMU.gyroscopeAvailable()) {
-        IMU.readGyroscope(data.orientation.x, data.orientation.y, data.orientation.z);
-    }
-    else data.error |= IMU_e;
-
-    if(!SD.exists("/" + finalFileName + ".TXT")) data.error |= SD_e;
+    if (!sd_ok || !SD.exists("/" + finalFileName)) data.error |= SD_e;
 }
 
 void setup() {
@@ -121,65 +135,55 @@ void setup() {
     pinMode(LORA_LED, OUTPUT);
 
     setRGB(LOW, LOW, LOW);
+
     Serial1.begin(9600);
+    Serial.begin(9600);
 
     checkLeds();
     digitalWrite(POWER_LED, HIGH);
 
     LoRaAccess(false);
-    if(!SD.begin(SD_CS)) {
-        setRGB(HIGH, LOW, HIGH);
-        while (1);
-    }
+
+    validateSensors();
 
     int missionNumber = getNextMissionNumber();
     finalFileName = String(missionNumber) + ".txt";
-    file = SD.open(finalFileName, FILE_WRITE);
-    if(file) file.close();
+    if (sd_ok) {
+        file = SD.open(finalFileName, FILE_WRITE);
+        if (file) file.close();
+    }
 
     LoRaAccess(true);
     initLora(433E6, 10, 125E3, 6, 20, true);
-
-    if (!bmp.begin(0x76)) {
-        setRGB(HIGH, HIGH, LOW);
-        while (1);
-    }
-
-    bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
-                    Adafruit_BMP280::SAMPLING_X2,
-                    Adafruit_BMP280::SAMPLING_X16,
-                    Adafruit_BMP280::FILTER_X16,
-                    Adafruit_BMP280::STANDBY_MS_500);
-
-    if (!IMU.begin()) {
-        setRGB(LOW, LOW, HIGH);
-        while (1);
-    }
 }
 
 void loop() {
+    validateSensors();
+
     Readings data = createReadings();
     readData(data);
 
-    LoRaAccess(true);
-    sendData(data, sizeof(Readings));
-    LoRaAccess(false);
+    if (lora_ok) {
+        LoRaAccess(true);
+        sendData(data, sizeof(Readings));
+        LoRaAccess(false);
+
+        setRGB(LOW, HIGH, LOW);
+        delay(20);
+        setRGB(LOW, LOW, LOW);
+    }
 
     StaticJsonDocument<256> json_data;
     jsonData(data, json_data);
 
-    file = SD.open(finalFileName, FILE_WRITE);
-    if (file) {
-        serializeJson(json_data, file);
-        file.println();
-        file.close();
+    if (sd_ok) {
+        file = SD.open(finalFileName, FILE_WRITE);
+        if (file) {
+            serializeJson(json_data, file);
+            file.println();
+            file.close();
+        }
     }
-
-    file = File();
-
-    setRGB(LOW, HIGH, LOW);
-    delay(20);
-    setRGB(LOW, LOW, LOW);
 
     checkErrors(data);
 }

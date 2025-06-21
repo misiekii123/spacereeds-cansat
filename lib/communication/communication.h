@@ -32,7 +32,7 @@ enum errors {
   BMP_e = 0b10000
 };
 
-void initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost);
+bool initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost);
 void sendData(Readings& data, size_t size);
 void setRGB(PinStatus r, PinStatus g, PinStatus b);
 void LoRaAccess(bool access_to_lora);

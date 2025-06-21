@@ -1,14 +1,15 @@
 #include "communication.h"
 
-void initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost) {
+bool initLora(long frequency, int spreadingFactor, long bandwidth, int codingRate, int txPower, bool boost) {
     if (!LoRa.begin(frequency)) {
         setRGB(HIGH, LOW, LOW);
-        while (1);
+        return false;
     }
     LoRa.setSpreadingFactor(spreadingFactor);
     LoRa.setSignalBandwidth(bandwidth);
     LoRa.setCodingRate4(codingRate);
     LoRa.setTxPower(txPower, boost);
+    return true;
 }
 
 void sendData(Readings& data, size_t size) {
