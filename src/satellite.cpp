@@ -9,11 +9,35 @@
 #include <data.h>
 #include <SD.h>
 #include <ArduinoJson.h>
+#include <utils.h>
 
-Adafruit_BMP280 bmp;
-TinyGPSPlus gps;
-File file;
-String finalFileName;
+void checkLeds() {
+    const int delayTime = 150;
+
+    for (int i = 0; i < 2; i++) {
+        digitalWrite(POWER_LED, HIGH);
+        delay(delayTime);
+        digitalWrite(POWER_LED, LOW);
+        delay(delayTime);
+    }
+
+    const int ledPins[] = {SD_LED, BMP_LED, GPS_LED, LORA_LED};
+    const int ledCount = sizeof(ledPins) / sizeof(ledPins[0]);
+
+    for (int cycle = 0; cycle < 2; cycle++) {
+        for (int i = 0; i < ledCount; i++) {
+            digitalWrite(ledPins[i], HIGH);
+            delay(delayTime);
+            digitalWrite(ledPins[i], LOW);
+        }
+
+        for (int i = ledCount - 1; i >= 0; i--) {
+            digitalWrite(ledPins[i], HIGH);
+            delay(delayTime);
+            digitalWrite(ledPins[i], LOW);
+        }
+    }
+}
 
 Readings createReadings() {
     Readings data;
@@ -70,8 +94,17 @@ void setup() {
     pinMode(LORA_CS, OUTPUT);
     pinMode(SD_CS, OUTPUT);
 
+    pinMode(POWER_LED, OUTPUT);
+    pinMode(SD_LED, OUTPUT);
+    pinMode(BMP_LED, OUTPUT);
+    pinMode(GPS_LED, OUTPUT);
+    pinMode(LORA_LED, OUTPUT);
+
     setRGB(LOW, LOW, LOW);
     Serial1.begin(9600);
+
+    checkLeds();
+    digitalWrite(POWER_LED, HIGH);
 
     LoRaAccess(false);
     if(!SD.begin(SD_CS)) {
