@@ -117,6 +117,7 @@ void readData(Readings& data) {
     }
 
     if (!sd_ok || !SD.exists("/" + finalFileName)) data.error |= SD_e;
+    if (!lora_ok) data.error |= LORA_e;
 }
 
 void setup() {

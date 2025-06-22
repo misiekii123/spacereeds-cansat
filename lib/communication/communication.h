@@ -26,7 +26,7 @@ typedef struct {
 
 enum errors {
   GPS_e = 0b00001,
-  GPS_val_e = 0b00010,
+  LORA_e = 0b00010,
   IMU_e = 0b00100,
   SD_e = 0b01000,
   BMP_e = 0b10000
