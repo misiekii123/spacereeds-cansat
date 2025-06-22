@@ -92,12 +92,10 @@ void readData(Readings& data) {
         gpsDataReceived = true;
     }
 
-    if (gps.location.isValid()) {
+    if (gpsDataReceived) {
         data.position.x = (float)gps.location.lat();
         data.position.y = (float)gps.altitude.meters();
         data.position.z = (float)gps.location.lng();
-    } else {
-        data.error |= GPS_val_e;
     }
 
     if (!gpsDataReceived) data.error |= GPS_e;
