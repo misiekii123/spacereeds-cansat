@@ -11,6 +11,11 @@
 #include <ArduinoJson.h>
 #include <utils.h>
 
+Adafruit_BMP280 bmp;
+TinyGPSPlus gps;
+File file;
+String finalFileName;
+
 bool bmp_ok = false;
 bool imu_ok = false;
 bool sd_ok = false;
