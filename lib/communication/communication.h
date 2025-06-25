@@ -21,6 +21,7 @@ typedef struct {
     int internal_temperature;
     float pressure;
     uint8_t error;
+    char message[60];
     int signal;
 } Readings;
 

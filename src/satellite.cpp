@@ -167,14 +167,22 @@ void loop() {
     Readings data = createReadings();
     readData(data);
 
+    memset(data.message, 0, sizeof(data.message));
+
     if (lora_ok) {
         LoRaAccess(true);
+        int packetSize = LoRa.parsePacket();
         sendData(data, sizeof(Readings));
         LoRaAccess(false);
 
         setRGB(LOW, HIGH, LOW);
         delay(20);
         setRGB(LOW, LOW, LOW);
+
+        if(packetSize > 0 && packetSize <= MAX_MESSAGE_LENGTH) {
+            char msg[MAX_MESSAGE_LENGTH + 1];
+            strncpy(data.message, msg, sizeof(data.message));
+        }
     }
 
     StaticJsonDocument<256> json_data;
