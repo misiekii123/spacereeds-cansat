@@ -21,7 +21,7 @@ void loop() {
         int rssi = LoRa.packetRssi();
         receivedData.signal = rssi;
 
-        StaticJsonDocument<256> data;
+        StaticJsonDocument<512> data;
 
         JsonObject orientation = data.createNestedObject("orientation");
         orientation["x"] = receivedData.orientation.x;
@@ -42,6 +42,7 @@ void loop() {
         data["internal_temperature"] = receivedData.internal_temperature;
         data["pressure"] = receivedData.pressure;
         data["error"] = (uint8_t)receivedData.error;
+        data["message"] = receivedData.message;
         data["signal"] = receivedData.signal;
 
         serializeJson(data, Serial);
