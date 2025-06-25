@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <ArduinoJson.h>
 #include <communication.h>
+#include <utils.h>
 
 void setup() {
     Serial.begin(9600);
@@ -45,5 +46,15 @@ void loop() {
 
         serializeJson(data, Serial);
         Serial.println();
+    }
+
+    if (Serial.available() > 0) {
+        static char buffer[MAX_MESSAGE_LENGTH + 1];
+        size_t len = Serial.readBytesUntil('\n', buffer, MAX_MESSAGE_LENGTH);
+        buffer[len] = '\0';
+
+        LoRa.beginPacket();
+        LoRa.write((uint8_t*)buffer, len);
+        LoRa.endPacket();
     }
 }

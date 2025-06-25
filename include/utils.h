@@ -5,3 +5,5 @@
 #define BMP_LED 5
 #define GPS_LED 6
 #define LORA_LED 7
+
+#define MAX_MESSAGE_LENGTH 60
