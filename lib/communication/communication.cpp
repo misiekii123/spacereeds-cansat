@@ -5,6 +5,7 @@ bool initLora(long frequency, int spreadingFactor, long bandwidth, int codingRat
         setRGB(HIGH, LOW, LOW);
         return false;
     }
+    LoRa.setPins(LORA_CS, -1, -1);
     LoRa.setSpreadingFactor(spreadingFactor);
     LoRa.setSignalBandwidth(bandwidth);
     LoRa.setCodingRate4(codingRate);

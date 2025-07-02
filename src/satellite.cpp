@@ -21,6 +21,9 @@ bool imu_ok = false;
 bool sd_ok = false;
 bool lora_ok = false;
 
+unsigned long lastSendTime = 0;
+int interval = 50;
+
 void checkLeds() {
     const int delayTime = 150;
     for (int i = 0; i < 2; i++) {
@@ -73,7 +76,6 @@ void validateSensors() {
 
     LoRaAccess(true);
     lora_ok = initLora(433E6, 10, 125E3, 6, 20, true);
-    LoRaAccess(false);
 
     if (bmp_ok) {
         bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
@@ -141,7 +143,6 @@ void setup() {
     setRGB(LOW, LOW, LOW);
 
     Serial1.begin(9600);
-    Serial.begin(9600);
 
     checkLeds();
     digitalWrite(POWER_LED, HIGH);
@@ -162,40 +163,46 @@ void setup() {
 }
 
 void loop() {
+    Readings data = createReadings();
+
     validateSensors();
 
-    Readings data = createReadings();
-    readData(data);
+    if (lora_ok && (millis() - lastSendTime > (unsigned long)interval)) {
+        lastSendTime = millis();
 
-    memset(data.message, 0, sizeof(data.message));
+        readData(data);
+        memset(data.message, 0, sizeof(data.message));
 
-    if (lora_ok) {
+        setRGB(LOW, LOW, LOW);
+
         LoRaAccess(true);
-        int packetSize = LoRa.parsePacket();
         sendData(data, sizeof(Readings));
         LoRaAccess(false);
 
+        if (sd_ok) {
+            LoRaAccess(false);
+            file = SD.open(finalFileName, FILE_WRITE);
+            if (file) {
+                StaticJsonDocument<512> json_data;
+                jsonData(data, json_data);
+                serializeJson(json_data, file);
+                file.println();
+                file.close();
+            }
+        }
+
+        checkErrors(data);
+
         setRGB(LOW, HIGH, LOW);
-        delay(20);
-        setRGB(LOW, LOW, LOW);
-
-        if(packetSize > 0 && packetSize <= MAX_MESSAGE_LENGTH) {
-            char msg[MAX_MESSAGE_LENGTH + 1];
-            strncpy(data.message, msg, sizeof(data.message));
-        }
     }
 
-    StaticJsonDocument<512> json_data;
-    jsonData(data, json_data);
-
-    if (sd_ok) {
-        file = SD.open(finalFileName, FILE_WRITE);
-        if (file) {
-            serializeJson(json_data, file);
-            file.println();
-            file.close();
+    if (lora_ok && (millis() - lastSendTime > 5)) {
+        LoRaAccess(true);
+        int packetSize = LoRa.parsePacket();
+        if (packetSize) {
+            String LoRaData = LoRa.readString();
+            strncpy(data.message, LoRaData.c_str(), sizeof(data.message) - 1);
+            data.message[sizeof(data.message) - 1] = '\0';
         }
     }
-
-    checkErrors(data);
 }
