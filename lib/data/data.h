@@ -4,4 +4,4 @@
 #include <SD.h>
 
 int getNextMissionNumber();
-void jsonData(Readings& data, StaticJsonDocument<256>& json_file);
+void jsonData(Readings& data, StaticJsonDocument<512>& json_file);

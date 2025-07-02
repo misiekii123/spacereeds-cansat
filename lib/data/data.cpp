@@ -1,6 +1,6 @@
 #include "data.h"
 
-void jsonData(Readings& data, StaticJsonDocument<256>& json_file) {
+void jsonData(Readings& data, StaticJsonDocument<512>& json_file) {
     JsonObject orientation = json_file.createNestedObject("orientation");
     orientation["x"] = data.orientation.x;
     orientation["y"] = data.orientation.y;

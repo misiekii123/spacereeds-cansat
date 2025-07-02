@@ -185,7 +185,7 @@ void loop() {
         }
     }
 
-    StaticJsonDocument<256> json_data;
+    StaticJsonDocument<512> json_data;
     jsonData(data, json_data);
 
     if (sd_ok) {
